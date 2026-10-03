@@ -124,17 +124,17 @@ export default function Clock() {
 
     return (
         <main className="max-w-lg mx-auto p-5 grid gap-5">
-            <section className="text-center">
-                <div className="size-[72px] rounded-full bg-jumia text-white grid place-items-center text-2xl font-bold mx-auto mb-3">RM</div>
+            <section className="text-center bg-gradient-to-br from-jumia to-jumia-dark text-white rounded-xl p-6 shadow">
+                <div className="size-[72px] rounded-full bg-white text-jumia grid place-items-center text-2xl font-bold mx-auto mb-3">RM</div>
                 <h2 className="text-xl font-semibold">Welcome to RiceMill Staff Portal</h2>
-                <p className="text-gray-500">{greeting}</p>
+                <p className="opacity-90">{greeting}</p>
                 <p>Ready to Clock-in?</p>
                 {user ? (
-                    <p className="text-sm text-gray-500 mt-2">Signed in as {user.name}</p>
+                    <p className="text-sm opacity-90 mt-2">Signed in as {user.name}</p>
                 ) : (
                     <div className="flex gap-2 justify-center mt-3">
-                        <button onClick={() => setModal('register')} className="px-5 py-2 rounded-lg border border-jumia text-jumia hover:bg-jumia-light font-medium uppercase">Register</button>
-                        <button onClick={() => setModal('login')} className="px-5 py-2 rounded-lg bg-jumia hover:bg-jumia-dark text-white font-medium uppercase">Login</button>
+                        <button onClick={() => setModal('register')} className="px-5 py-2 rounded-lg border border-white text-white hover:bg-white/20 font-medium uppercase">Register</button>
+                        <button onClick={() => setModal('login')} className="px-5 py-2 rounded-lg bg-white text-jumia hover:bg-jumia-light font-medium uppercase">Login</button>
                     </div>
                 )}
             </section>
