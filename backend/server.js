@@ -74,7 +74,7 @@ async function locationCheck(body) {
 }
 
 const app = express();
-app.use(cors());
+app.use(cors(CORS_ORIGINS.length ? { origin: CORS_ORIGINS } : undefined));
 app.use(express.json({ limit: '5mb' }));
 
 app.post('/api/auth/register', wrap(async (req, res) => {
