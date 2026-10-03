@@ -42,6 +42,16 @@ export function AuthProvider({ children }) {
         setUser(null);
     }, []);
 
+    // Role is cached in localStorage, so re-sync it from the server on load.
+    const loggedIn = !!user;
+    useEffect(() => {
+        if (!loggedIn) return;
+        api('/attendance/status').then((s) => {
+            localStorage.setItem('user', JSON.stringify(s.user));
+            setUser((u) => (u && u.role !== s.user.role ? s.user : u));
+        }).catch(() => { });
+    }, [loggedIn]);
+
     useEffect(() => {
         if (!user) return;
         const touch = () => localStorage.setItem('lastActivity', String(Date.now()));
