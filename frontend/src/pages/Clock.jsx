@@ -167,7 +167,7 @@ export default function Clock() {
                 <h3 className="font-semibold text-lg">Clock Instructions</h3>
                 <p className="text-sm text-gray-500">Welcome! Please note the following:</p>
                 <ul className="my-3 leading-8">
-                    <li>✅ Clock-in deadline: {info?.deadline || '08:10'} daily.</li>
+                    <li>✅ Clock-in deadline: {info?.officeSet ? info.deadline : 'set by your admin'} daily.</li>
                     <li>🚫 Late clock-ins after the deadline will automatically result in a strike.</li>
                     <li>🚫 No clock-Out will automatically result in a strike.</li>
                     <li>📍 This system is location-sensitive — you must be physically present in the office to clock in.</li>

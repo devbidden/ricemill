@@ -64,7 +64,8 @@ const wrap = (fn) => (req, res) => fn(req, res).catch((e) => {
 
 async function locationCheck(body) {
     const s = await getSettings();
-    if (s.officeLat == null) return { ok: false, message: 'Office location has not been set by the admin yet' };
+    if (s.officeLat == null || !s.radius || !s.deadline)
+        return { ok: false, message: 'Office location has not been set by the admin yet' };
     const { latitude, longitude } = body || {};
     if (typeof latitude !== 'number' || typeof longitude !== 'number')
         return { ok: false, message: 'Location required' };
@@ -106,7 +107,7 @@ app.get('/api/attendance/status', auth, wrap(async (req, res) => {
         user: publicUser(req.user),
         today: today ? { clockIn: today.clockIn, clockOut: today.clockOut, late: today.lateStrike } : null,
         strikes: await strikesFor(req.user._id),
-        officeSet: s.officeLat != null,
+        officeSet: s.officeLat != null && !!s.radius && !!s.deadline,
         deadline: s.deadline,
     });
 }));
@@ -171,10 +172,40 @@ app.put('/api/admin/settings', auth, adminOnly, wrap(async (req, res) => {
 
 app.get('/api/admin/attendance', auth, adminOnly, wrap(async (req, res) => {
     await sweepMissingClockOuts();
+    const { date, from, to, search, status } = req.query;
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
     const filter = {};
-    if (req.query.date) filter.date = String(req.query.date);
-    const recs = await Attendance.find(filter).populate('user', 'name email department').sort({ clockIn: -1 }).limit(500);
-    res.json(recs);
+    if (date) filter.date = String(date);
+    else if (from || to) filter.date = { ...(from && { $gte: String(from) }), ...(to && { $lte: String(to) }) };
+    if (status === 'late') filter.lateStrike = true;
+    else if (status === 'missed') filter.missedClockOutStrike = true;
+    else if (status === 'ontime') Object.assign(filter, { lateStrike: false, missedClockOutStrike: false });
+    if (search && String(search).trim()) {
+        const rx = new RegExp(String(search).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        const ids = await User.find({ $or: [{ name: rx }, { email: rx }, { department: rx }] }).distinct('_id');
+        filter.user = { $in: ids };
+    }
+    const [items, total] = await Promise.all([
+        Attendance.find(filter).populate('user', 'name email department')
+            .sort({ clockIn: -1 }).skip((page - 1) * limit).limit(limit),
+        Attendance.countDocuments(filter),
+    ]);
+    res.json({ items, total, page, pages: Math.max(Math.ceil(total / limit), 1) });
+}));
+
+app.delete('/api/admin/attendance/:id', auth, adminOnly, wrap(async (req, res) => {
+    const rec = await Attendance.findByIdAndDelete(req.params.id);
+    if (!rec) return res.status(404).json({ message: 'Record not found' });
+    res.json({ message: 'Record deleted' });
+}));
+
+app.delete('/api/admin/staff/:id', auth, adminOnly, wrap(async (req, res) => {
+    if (String(req.user._id) === req.params.id) return res.status(400).json({ message: 'You cannot delete your own account' });
+    const u = await User.findByIdAndDelete(req.params.id);
+    if (!u) return res.status(404).json({ message: 'User not found' });
+    await Attendance.deleteMany({ user: u._id });
+    res.json({ message: 'User and their records deleted' });
 }));
 
 app.get('/api/admin/attendance/:id/photo', auth, adminOnly, wrap(async (req, res) => {

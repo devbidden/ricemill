@@ -27,6 +27,7 @@ export const useAuth = () => useContext(Ctx);
 
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('user') || 'null'));
+    const [roleChecked, setRoleChecked] = useState(false);
 
     const authenticate = async (mode, body) => {
         const r = await api('/auth/' + mode, { method: 'POST', body });
@@ -34,21 +35,24 @@ export function AuthProvider({ children }) {
         localStorage.setItem('user', JSON.stringify(r.user));
         localStorage.setItem('lastActivity', String(Date.now()));
         setUser(r.user);
+        setRoleChecked(true);
     };
     const logout = useCallback(() => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('lastActivity');
         setUser(null);
+        setRoleChecked(false);
     }, []);
 
-    // Role is cached in localStorage, so re-sync it from the server on load.
+    // The cached role is only trusted after the server confirms it.
     const loggedIn = !!user;
     useEffect(() => {
         if (!loggedIn) return;
         api('/attendance/status').then((s) => {
             localStorage.setItem('user', JSON.stringify(s.user));
             setUser((u) => (u && u.role !== s.user.role ? s.user : u));
+            setRoleChecked(true);
         }).catch(() => { });
     }, [loggedIn]);
 
@@ -73,5 +77,6 @@ export function AuthProvider({ children }) {
         };
     }, [user, logout]);
 
-    return <Ctx.Provider value={{ user, authenticate, logout }}>{children}</Ctx.Provider>;
+    const isAdmin = roleChecked && user?.role === 'admin';
+    return <Ctx.Provider value={{ user, isAdmin, roleChecked, authenticate, logout }}>{children}</Ctx.Provider>;
 }

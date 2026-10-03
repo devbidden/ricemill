@@ -27,8 +27,8 @@ const settingsSchema = new mongoose.Schema({
     key: { type: String, default: 'main', unique: true },
     officeLat: { type: Number, default: null },
     officeLng: { type: Number, default: null },
-    radius: { type: Number, default: 100 },
-    deadline: { type: String, default: '08:10' }, // HH:MM
+    radius: { type: Number, default: null },
+    deadline: { type: String, default: null }, // HH:MM
 });
 
 module.exports = {
