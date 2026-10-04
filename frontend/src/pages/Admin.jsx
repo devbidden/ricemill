@@ -163,6 +163,7 @@ function Office() {
     const circle = useRef(null);
     const [form, setForm] = useState({ lat: '', lng: '', radius: '', deadline: '' });
     const [msg, setMsg] = useState({ text: '', ok: true });
+    const [gpsAccuracy, setGpsAccuracy] = useState(null);
 
     const place = (lat, lng, radius, pan = false) => {
         if (!marker.current) marker.current = L.marker([lat, lng]).addTo(map.current);
@@ -176,6 +177,7 @@ function Office() {
         map.current = L.map(mapEl.current).setView([20, 0], 2);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(map.current);
         map.current.on('click', (e) => {
+            setGpsAccuracy(null);
             setForm((f) => { place(e.latlng.lat, e.latlng.lng, Number(f.radius) || 100); return { ...f, lat: e.latlng.lat.toFixed(6), lng: e.latlng.lng.toFixed(6) }; });
         });
         api('/admin/settings').then((s) => {
@@ -195,11 +197,12 @@ function Office() {
         navigator.geolocation.getCurrentPosition(
             (p) => {
                 const { latitude: lat, longitude: lng } = p.coords;
+                setGpsAccuracy(p.coords.accuracy);
                 place(lat, lng, Number(form.radius) || 100, true);
                 setForm((f) => ({ ...f, lat: lat.toFixed(6), lng: lng.toFixed(6) }));
             },
             () => setMsg({ text: 'Could not get your location', ok: false }),
-            { enableHighAccuracy: true });
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
 
     const save = async () => {
         if ([form.lat, form.lng, form.radius, form.deadline].some((v) => v === '' || v == null)) {
@@ -230,6 +233,7 @@ function Office() {
                 <button onClick={save} className="px-4 py-2 rounded-lg bg-jumia hover:bg-jumia-dark text-white font-medium uppercase">Save</button>
                 <span className={msg.ok ? 'text-green-600' : 'text-red-600'}>{msg.text}</span>
             </div>
+            {gpsAccuracy != null && <p className={`text-sm ${Number(form.radius) < gpsAccuracy ? 'text-amber-700' : 'text-gray-600'}`}>Current GPS fix accuracy: about ±{Math.round(gpsAccuracy)} m{Number(form.radius) < gpsAccuracy ? ' (less precise than the allowed radius; choose the pin on the map or use a more accurate device)' : ''}.</p>}
         </div>
     );
 }

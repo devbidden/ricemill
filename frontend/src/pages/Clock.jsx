@@ -42,9 +42,9 @@ function getPosition() {
     return new Promise((resolve, reject) => {
         if (!navigator.geolocation) return reject(new Error('Geolocation not supported'));
         navigator.geolocation.getCurrentPosition(
-            (p) => resolve({ latitude: p.coords.latitude, longitude: p.coords.longitude }),
+            (p) => resolve({ latitude: p.coords.latitude, longitude: p.coords.longitude, accuracy: p.coords.accuracy }),
             () => reject(new Error('Please turn on location services (GPS)')),
-            { enableHighAccuracy: true, timeout: 15000 });
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
     });
 }
 
@@ -88,7 +88,10 @@ export default function Clock() {
         setStatus({ msg: 'Verifying location...', ok: null });
         const pos = await getPosition();
         const r = await api('/attendance/verify-location', { method: 'POST', body: pos });
-        if (!r.verified) throw new Error(r.message);
+        if (!r.verified) {
+            const accuracy = Number.isFinite(pos.accuracy) ? ` Device GPS accuracy: about ±${Math.round(pos.accuracy)} m.` : '';
+            throw new Error(`${r.message}${accuracy}`);
+        }
         streamRef.current = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
         setCoords(pos);
         setCameraOn(true);
@@ -123,8 +126,8 @@ export default function Clock() {
     const statusColor = status.ok === true ? 'text-green-600' : status.ok === false ? 'text-red-600' : '';
 
     return (
-        <main className="max-w-lg mx-auto p-5 grid gap-5">
-            <section className="text-center bg-gradient-to-br from-jumia to-jumia-dark text-white rounded-xl p-6 shadow">
+        <main className="max-w-6xl mx-auto p-5 flex flex-col md:flex-row items-stretch gap-5">
+            <section className="min-w-0 flex-1 text-center bg-gradient-to-br from-jumia to-jumia-dark text-white rounded-xl p-6 shadow">
                 <div className="size-[72px] rounded-full bg-white text-jumia grid place-items-center text-2xl font-bold mx-auto mb-3">RM</div>
                 <h2 className="text-xl font-semibold">Welcome to RiceMill Staff Portal</h2>
                 <p className="opacity-90">{greeting}</p>
@@ -139,7 +142,7 @@ export default function Clock() {
                 )}
             </section>
 
-            <section className="bg-white rounded-xl p-5 shadow text-center">
+            <section className="min-w-0 flex-1 bg-white rounded-xl p-5 shadow text-center">
                 <h3 className="font-semibold text-lg">Time Clock</h3>
                 <p className="text-sm text-gray-500">Manage your work time</p>
                 <p className="mt-4 text-xs text-gray-500">Current Time</p>
@@ -163,7 +166,7 @@ export default function Clock() {
                 {today?.clockOut && <p className="mt-3 text-green-600 font-semibold">You have completed your day.</p>}
             </section>
 
-            <section className="bg-white rounded-xl p-5 shadow">
+            <section className="min-w-0 flex-1 bg-white rounded-xl p-5 shadow">
                 <h3 className="font-semibold text-lg">Clock Instructions</h3>
                 <p className="text-sm text-gray-500">Welcome! Please note the following:</p>
                 <ul className="my-3 leading-8">

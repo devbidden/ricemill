@@ -71,8 +71,8 @@ async function locationCheck(body) {
         return { ok: false, message: 'Location required' };
     const distance = Math.round(distanceM(latitude, longitude, s.officeLat, s.officeLng));
     return distance <= s.radius
-        ? { ok: true, distance, settings: s }
-        : { ok: false, distance, message: `You are not at the office (${distance} m away)` };
+        ? { ok: true, distance, radius: s.radius, settings: s }
+        : { ok: false, distance, radius: s.radius, message: `You are ${distance} m from the office; the allowed radius is ${s.radius} m` };
 }
 
 const app = express();
@@ -114,7 +114,7 @@ app.get('/api/attendance/status', auth, wrap(async (req, res) => {
 
 app.post('/api/attendance/verify-location', auth, wrap(async (req, res) => {
     const r = await locationCheck(req.body);
-    res.json({ verified: r.ok, distance: r.distance, message: r.ok ? 'Location verified' : r.message });
+    res.json({ verified: r.ok, distance: r.distance, radius: r.radius, message: r.ok ? 'Location verified' : r.message });
 }));
 
 app.post('/api/attendance/clock-in', auth, wrap(async (req, res) => {
